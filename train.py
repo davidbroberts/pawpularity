@@ -89,7 +89,7 @@ train_aug = A.Compose(
     [   A.RandomResizedCrop(image_size,image_size,p= 0.8),
         A.Resize(image_size,image_size,p=1.0),
         A.HorizontalFlip(p=0.5),   
-        A.RandomBrightnessContrast(p=0.4),
+        A.RandomBrightnessContrast(p=0.7),
         A.HueSaturationValue(
             hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.5
         ),
