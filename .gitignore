@@ -1,3 +1,4 @@
 data/train
 data/pytorch-image-models-master
 output
+wandb

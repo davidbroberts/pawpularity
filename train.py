@@ -38,7 +38,7 @@ from torch import optim
 from torchvision import transforms
 
 from transformers import get_linear_schedule_with_warmup, get_cosine_schedule_with_warmup,get_cosine_with_hard_restarts_schedule_with_warmup
-
+import wandb
 import warnings
 warnings.filterwarnings('ignore')
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -68,7 +68,7 @@ for f,(t,v) in enumerate(kf.split(X=df,y=y)):
     df.loc[v,'fold'] = f
 
 
-df['path'] = [f"{config['TRAIN_IMAGES_PATH']}train/{x}.jpg" for x in df["Id"].values]
+df['path'] = [f"{config['TRAIN_IMAGES_PATH']}{x}.jpg" for x in df["Id"].values]
 dense_features = [
     'Subject Focus', 'Eyes', 'Face', 'Near', 'Action', 'Accessory',
     'Group', 'Collage', 'Human', 'Occlusion', 'Info', 'Blur'
@@ -266,6 +266,9 @@ def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_
     optimizer = optim.AdamW(m.parameters(), lr = config['LR'], weight_decay = 1e-6)
     '''base_optimizer = optim.AdamW # define an optimizer for the "sharpness-aware" update
     optimizer = SAM(m.parameters(), base_optimizer, lr=5e-4 , weight_decay = 1e-7)'''
+    
+    wandb.watch(model, criterion, log="all", log_freq=10)
+    
     epochs = config['EPOCHS']
     warmup_epochs = config['WARMUP_EPOCHS']
     num_train_steps = math.ceil(len(train_loader))
@@ -276,7 +279,7 @@ def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_
     loop = range(epochs)
     for e in loop:
         
-        train_loss,train_rmse = train_one_epoch(train_loader,m,optimizer,criterion,e,epochs,sch)
+        train_loss, train_rmse = train_one_epoch(train_loader,m,optimizer,criterion,e,epochs,sch)
     
         print(f'For epoch {e+1}/{epochs}')
         print(f'average train_loss {train_loss}')
@@ -288,7 +291,7 @@ def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_
         print(f'avarage val_rmse {val_rmse}')
 
         torch.save(m.state_dict(), config['OUTPUT_DIR'] + f'Fold {fold_n} with val_rmse {val_rmse}.pth') 
-
+        wandb.log({"Train RMSE": train_rmse, "Val RMSEy": val_rmse, "Train loss": train_loss, "Val_loss": val_loss, "Epoch": e})
 
 if __name__ == '__main__':
     
@@ -296,8 +299,9 @@ if __name__ == '__main__':
 
     if not os.path.exists(config['OUTPUT_DIR']):
         os.makedirs(config['OUTPUT_DIR'])
-    
-    for i in range(5):
-        model = Model(True)
-        model= model.to(device)
-        fit(model ,i)
+ 
+    with wandb.init(project="Pawpulatrity NN", entity='mrigavid'):
+        for i in range(5):
+            model = Model(True)
+            model= model.to(device)
+            fit(model ,i)
