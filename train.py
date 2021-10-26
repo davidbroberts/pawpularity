@@ -11,7 +11,7 @@ with open('config/SETTINGS.json', 'r') as f:
     print("CONFIG LOADED:")
     print(config)
 
-timm_path = f"{config['DATA_DIR']}pytorch-image-models-master"
+timm_path = config['TIMM_PATH']
 sys.path.append(timm_path)
 import timm
 from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
@@ -68,7 +68,7 @@ for f,(t,v) in enumerate(kf.split(X=df,y=y)):
     df.loc[v,'fold'] = f
 
 
-df['path'] = [f"{config['DATA_DIR']}train/{x}.jpg" for x in df["Id"].values]
+df['path'] = [f"{config['TRAIN_IMAGES_PATH']}train/{x}.jpg" for x in df["Id"].values]
 dense_features = [
     'Subject Focus', 'Eyes', 'Face', 'Near', 'Action', 'Accessory',
     'Group', 'Collage', 'Human', 'Occlusion', 'Info', 'Blur'

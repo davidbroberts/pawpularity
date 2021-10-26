@@ -1,9 +1,11 @@
 {
-"DATA_DIR":"data/",
+"TIMM_PATH": "data/pytorch-image-models-master",
+"TRAIN_IMAGES_PATH": "data/train/",
+"DATA_DIR": "data/",
 "OUTPUT_DIR": "output/", 
 "EPOCHS": 5,
 "WARMUP_EPOCHS": 2,
-"LR": 1e-4,
+"LR": 2e-4,
 "TRAIN_BATCH_SIZE": 8,
 "VAL_BATCH_SIZE": 8
 }
