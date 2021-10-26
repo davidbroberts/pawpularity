@@ -57,7 +57,7 @@ def set_seed(seed):
 # This stuff needs to be put into a method
 #
 
-!wandb off
+
 set_seed(42)
 
 
@@ -297,7 +297,7 @@ def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_
 
 if __name__ == '__main__':
     
-
+    wandb off
 
     if not os.path.exists(config['OUTPUT_DIR']):
         os.makedirs(config['OUTPUT_DIR'])
