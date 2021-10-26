@@ -56,6 +56,8 @@ def set_seed(seed):
 
 # This stuff needs to be put into a method
 #
+
+!wandb off
 set_seed(42)
 
 
@@ -291,7 +293,7 @@ def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_
         print(f'avarage val_rmse {val_rmse}')
 
         torch.save(m.state_dict(), config['OUTPUT_DIR'] + f'Fold {fold_n} with val_rmse {val_rmse}.pth') 
-        wandb.log({"Train RMSE": train_rmse, "Val RMSEy": val_rmse, "Train loss": train_loss, "Val_loss": val_loss, "Epoch": e})
+        wandb.log({"Train RMSE": train_rmse, "Val RMSE": val_rmse, "Train loss": train_loss, "Val Loss": val_loss, "Epoch": e})
 
 if __name__ == '__main__':
     
@@ -300,7 +302,7 @@ if __name__ == '__main__':
     if not os.path.exists(config['OUTPUT_DIR']):
         os.makedirs(config['OUTPUT_DIR'])
  
-    with wandb.init(project="Pawpulatrity NN", entity='mrigavid'):
+    with wandb.init(project="Pawpularity NN", entity='mrigavid'):
         for i in range(5):
             model = Model(True)
             model= model.to(device)
