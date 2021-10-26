@@ -11,7 +11,7 @@ with open('config/SETTINGS.json', 'r') as f:
     print("CONFIG LOADED:")
     print(config)
 
-timm_path = "C:/Users/rober/.spyder-py3/pawpularity/timm-pytorch-image_models/pytorch-image-models-master"
+timm_path = f"{config['DATA_DIR']}/pytorch-image-models-master"
 sys.path.append(timm_path)
 import timm
 from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
