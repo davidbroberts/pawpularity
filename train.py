@@ -38,6 +38,7 @@ from sklearn import metrics, model_selection, preprocessing
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 device
 
+
 def set_seed(seed):
     random.seed(seed)
     os.environ["PYTHONHASHSEED"] = str(seed)
@@ -50,7 +51,7 @@ def set_seed(seed):
 
 set_seed(42)
 
-df = pd.read_csv("C:/Users/rober/.spyder-py3/pawpularity/train.csv")
+df = pd.read_csv(f"{config['DATA_DIR']}train.csv")
 df = df.sample(frac = 1).reset_index(drop = True)
 y = df.Pawpularity.values
 kf = model_selection.StratifiedKFold(n_splits = 5, random_state=42, shuffle=True)
@@ -59,7 +60,7 @@ for f,(t,v) in enumerate(kf.split(X=df,y=y)):
     df.loc[v,'fold'] = f
 
 
-df['path'] = [f"C:/Users/rober/.spyder-py3/pawpularity/train/{x}.jpg" for x in df["Id"].values]
+df['path'] = [f"{config['DATA_DIR']}train/{x}.jpg" for x in df["Id"].values]
 dense_features = [
     'Subject Focus', 'Eyes', 'Face', 'Near', 'Action', 'Accessory',
     'Group', 'Collage', 'Human', 'Occlusion', 'Info', 'Blur'
@@ -278,14 +279,16 @@ def fit(m,fold_n,training_batch_size=8,validation_batch_size=16):
         print(f'avarage val_loss { val_loss }')
         print(f'avarage val_rmse {val_rmse}')
 
-        torch.save(m.state_dict(),OUTPUT_DIR+ f'Fold {fold_n} with val_rmse {val_rmse}.pth') 
+        torch.save(m.state_dict(),config['OUTPUT_DIR'] + f'Fold {fold_n} with val_rmse {val_rmse}.pth') 
 
 
 if __name__ == '__main__':
 
-    OUTPUT_DIR = './'
-    if not os.path.exists(OUTPUT_DIR):
-        os.makedirs(OUTPUT_DIR)
+    with open('config/SETTINGS.json', 'r') as f:
+        config = json.load(f)
+
+    if not os.path.exists(config['OUTPUT_DIR']):
+        os.makedirs(config['OUTPUT_DIR'])
     
     for i in range(5):
         model = Model(True)
