@@ -1,28 +1,35 @@
 # -*- coding: utf-8 -*-
-#timm_path = "../input/timm-pytorch-image-models/pytorch-image-models-master"
-timm_path = "C:/Users/rober/.spyder-py3/pawpularity/timm-pytorch-image_models/pytorch-image-models-master"
+
+import os
 import sys
+import json
+import math
+import random
+import cv2
+with open('config/SETTINGS.json', 'r') as f:
+    config = json.load(f)
+    print("CONFIG LOADED:")
+    print(config)
+
+timm_path = "C:/Users/rober/.spyder-py3/pawpularity/timm-pytorch-image_models/pytorch-image-models-master"
 sys.path.append(timm_path)
 import timm
 from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import sklearn
-import os
+from sklearn import model_selection
+from sklearn import metrics, model_selection, preprocessing
+from sklearn.metrics import mean_squared_error
+
 from tqdm.notebook import tqdm
 import matplotlib.pyplot as plt
-
 import glob
-import sklearn
-from sklearn import model_selection
-import math
-import random
 
-import cv2
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -34,7 +41,6 @@ from transformers import get_linear_schedule_with_warmup, get_cosine_schedule_wi
 
 import warnings
 warnings.filterwarnings('ignore')
-from sklearn import metrics, model_selection, preprocessing
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 device
 
@@ -48,14 +54,16 @@ def set_seed(seed):
         torch.cuda.manual_seed_all(seed)
         torch.backends.cudnn.deterministic = True
 
-
+# This stuff needs to be put into a method
+#
 set_seed(42)
+
 
 df = pd.read_csv(f"{config['DATA_DIR']}train.csv")
 df = df.sample(frac = 1).reset_index(drop = True)
 y = df.Pawpularity.values
 kf = model_selection.StratifiedKFold(n_splits = 5, random_state=42, shuffle=True)
-#kf = model_selection.StratifiedKFold(n_splits = 5)
+
 for f,(t,v) in enumerate(kf.split(X=df,y=y)):
     df.loc[v,'fold'] = f
 
@@ -65,6 +73,34 @@ dense_features = [
     'Subject Focus', 'Eyes', 'Face', 'Near', 'Action', 'Accessory',
     'Group', 'Collage', 'Human', 'Occlusion', 'Info', 'Blur'
 ]
+
+
+image_size = 384
+train_aug = A.Compose(
+    [   A.RandomResizedCrop(image_size,image_size,p= 0.8),
+        A.Resize(image_size,image_size,p=1.0),
+        A.HorizontalFlip(p=0.5),   
+        A.RandomBrightnessContrast(p=0.5),
+        A.HueSaturationValue(
+            hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.5
+        ),
+        A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=30, p=0.5),
+          
+   A.Normalize(mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD),
+        ToTensorV2()
+    ]
+)
+val_aug = A.Compose(
+    [ 
+     A.Resize(image_size,image_size,p=1.0),
+        A.Normalize(mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD),
+        ToTensorV2()
+    ]
+)
+
+#
+# ---End of stuff that needs to be in a method
+
 
 def mixup(x, y, alpha=1.0):
 
@@ -84,28 +120,7 @@ def mixup(x, y, alpha=1.0):
 def mixup_criterion(criterion, pred, y_a, y_b, lam):
     return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
 
-image_size = 384
-train_aug = A.Compose(
-    [   A.RandomResizedCrop(image_size,image_size,p= 0.8),
-        A.Resize(image_size,image_size,p=1.0),
-        A.HorizontalFlip(p=0.5),   
-        A.RandomBrightnessContrast(p=0.7),
-        A.HueSaturationValue(
-            hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.5
-        ),
-        A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=30, p=0.5),
-          
-   A.Normalize(mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD),
-        ToTensorV2()
-    ]
-)
-val_aug = A.Compose(
-    [ 
-     A.Resize(image_size,image_size,p=1.0),
-        A.Normalize(mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD),
-        ToTensorV2()
-    ]
-)
+
 
 class Pets(Dataset):
     def __init__(self , df,augs = None):
@@ -157,7 +172,7 @@ class AverageMeter(object):
         self.count += n
         self.avg = self.sum / self.count
 
-from sklearn.metrics import mean_squared_error
+
 def train_one_epoch(train_loader,model,optimizer,criterion,e,epochs,scheduler):
     losses = AverageMeter()
     scores = AverageMeter()
@@ -237,29 +252,22 @@ def val_one_epoch(loader,model,optimizer,criterion):
         
     return losses.avg,scores.avg
 
-def fit(m,fold_n,training_batch_size=8,validation_batch_size=16):
+def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_batch_size = config['VAL_BATCH_SIZE']):
     
     train_data= df[df.fold != fold_n]
     val_data  = df[df.fold == fold_n]
     train_data= Pets(train_data.reset_index(drop=True) , augs = train_aug)
     val_data  = Pets(val_data.reset_index(drop=True) , augs = val_aug)
     
-    
-    train_loader = DataLoader(train_data,
-                             shuffle=True,
-                        num_workers=4,pin_memory=True, drop_last=True,
-                        batch_size=training_batch_size)
-    valid_loader = DataLoader(val_data,
-                             shuffle=False,
-                        num_workers=4,pin_memory=True, drop_last=False,
-                        batch_size=validation_batch_size)
+    train_loader = DataLoader(train_data, shuffle=True, num_workers=4, pin_memory=True, drop_last=True, batch_size=training_batch_size)
+    valid_loader = DataLoader(val_data, shuffle=False, num_workers=4, pin_memory=True, drop_last=False, batch_size=validation_batch_size)
    
     criterion= nn.BCEWithLogitsLoss()
-    optimizer = optim.AdamW(m.parameters(), lr=2e-4, weight_decay = 1e-6)
+    optimizer = optim.AdamW(m.parameters(), lr = config['LR'], weight_decay = 1e-6)
     '''base_optimizer = optim.AdamW # define an optimizer for the "sharpness-aware" update
     optimizer = SAM(m.parameters(), base_optimizer, lr=5e-4 , weight_decay = 1e-7)'''
-    epochs= 50
-    warmup_epochs = epochs
+    epochs = config['EPOCHS']
+    warmup_epochs = config['WARMUP_EPOCHS']
     num_train_steps = math.ceil(len(train_loader))
     num_warmup_steps= num_train_steps * warmup_epochs
     num_training_steps=int(num_train_steps * epochs)
@@ -279,13 +287,12 @@ def fit(m,fold_n,training_batch_size=8,validation_batch_size=16):
         print(f'avarage val_loss { val_loss }')
         print(f'avarage val_rmse {val_rmse}')
 
-        torch.save(m.state_dict(),config['OUTPUT_DIR'] + f'Fold {fold_n} with val_rmse {val_rmse}.pth') 
+        torch.save(m.state_dict(), config['OUTPUT_DIR'] + f'Fold {fold_n} with val_rmse {val_rmse}.pth') 
 
 
 if __name__ == '__main__':
+    
 
-    with open('config/SETTINGS.json', 'r') as f:
-        config = json.load(f)
 
     if not os.path.exists(config['OUTPUT_DIR']):
         os.makedirs(config['OUTPUT_DIR'])

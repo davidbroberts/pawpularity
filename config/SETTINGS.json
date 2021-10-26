@@ -1,1 +1,9 @@
-{"DATA_DIR":"./data/","OUTPUT_DIR": "./output/", "EPOCHS": "50"}
+{
+"DATA_DIR":"data/",
+"OUTPUT_DIR": "output/", 
+"EPOCHS": 5,
+"WARMUP_EPOCHS": 2,
+"LR": 2e-4,
+"TRAIN_BATCH_SIZE": 8,
+"VAL_BATCH_SIZE": 8
+}
