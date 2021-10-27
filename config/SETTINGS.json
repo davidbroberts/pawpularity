@@ -3,9 +3,9 @@
 "TRAIN_IMAGES_PATH": "data/train/",
 "DATA_DIR": "data/",
 "OUTPUT_DIR": "output/", 
-"EPOCHS": 25,
-"WARMUP_EPOCHS": 10,
-"LR": 3e-4,
-"TRAIN_BATCH_SIZE": 8,
-"VAL_BATCH_SIZE": 8
+"EPOCHS": "25",
+"WARMUP_EPOCHS": "10",
+"LR": "0.00003",
+"TRAIN_BATCH_SIZE": "8",
+"VAL_BATCH_SIZE": "16"
 }
