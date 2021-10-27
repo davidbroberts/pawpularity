@@ -26,7 +26,7 @@ from sklearn import model_selection
 from sklearn import metrics, model_selection, preprocessing
 from sklearn.metrics import mean_squared_error
 
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 import glob
 
