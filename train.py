@@ -154,7 +154,6 @@ class Model(nn.Module):
     
     def forward(self,image):
         image = self.backbone(image)
-        image = F.dropout(image , 0.35)
         dec2 = self.fc3_B(image)
         dec1 = self.fc3_A(image)
         return F.sigmoid(dec1) , dec2
@@ -274,7 +273,7 @@ def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_
     #wandb.watch(model, criterion, log="all", log_freq=10)
     
     epochs = config['EPOCHS']
-    warmup_epochs = config['WARMUP_EPOCHS']
+    warmup_epochs = epochs
     num_train_steps = math.ceil(len(train_loader))
     num_warmup_steps= num_train_steps * warmup_epochs
     num_training_steps=int(num_train_steps * epochs)
