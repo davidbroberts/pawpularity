@@ -6,6 +6,8 @@ import json
 import math
 import random
 import cv2
+
+
 with open('config/SETTINGS.json', 'r') as f:
     config = json.load(f)
     print("CONFIG LOADED:")
@@ -269,7 +271,7 @@ def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_
     '''base_optimizer = optim.AdamW # define an optimizer for the "sharpness-aware" update
     optimizer = SAM(m.parameters(), base_optimizer, lr=5e-4 , weight_decay = 1e-7)'''
     
-    wandb.watch(model, criterion, log="all", log_freq=10)
+    #wandb.watch(model, criterion, log="all", log_freq=10)
     
     epochs = config['EPOCHS']
     warmup_epochs = config['WARMUP_EPOCHS']
@@ -293,7 +295,7 @@ def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_
         print(f'avarage val_rmse {val_rmse}')
 
         torch.save(m.state_dict(), config['OUTPUT_DIR'] + f'Fold {fold_n} with val_rmse {val_rmse}.pth') 
-        wandb.log({"Train RMSE": train_rmse, "Val RMSE": val_rmse, "Train loss": train_loss, "Val Loss": val_loss, "Epoch": e})
+        #wandb.log({"Train RMSE": train_rmse, "Val RMSE": val_rmse, "Train loss": train_loss, "Val Loss": val_loss, "Epoch": e})
 
 if __name__ == '__main__':
     
@@ -301,8 +303,8 @@ if __name__ == '__main__':
     if not os.path.exists(config['OUTPUT_DIR']):
         os.makedirs(config['OUTPUT_DIR'])
  
-    with wandb.init(project="Pawpularity NN", entity='mrigavid'):
-        for i in range(5):
-            model = Model(True)
-            model= model.to(device)
-            fit(model ,i)
+    #with wandb.init(project="Pawpularity NN", entity='mrigavid'):
+    for i in range(5):
+        model = Model(True)
+        model= model.to(device)
+        fit(model ,i)
