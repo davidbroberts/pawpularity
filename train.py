@@ -59,7 +59,6 @@ def set_seed(seed):
 # This stuff needs to be put into a method
 #
 
-
 set_seed(42)
 
 
@@ -79,12 +78,12 @@ dense_features = [
 ]
 
 
-image_size = 384
+image_size = config['IMAGE_SIZE']
 train_aug = A.Compose(
-    [   A.RandomResizedCrop(image_size,image_size,p= 0.8),
-        A.Resize(image_size,image_size,p=1.0),
-        A.HorizontalFlip(p=0.5),   
-        A.RandomBrightnessContrast(p=0.5),
+    [   A.RandomResizedCrop(image_size,image_size,p = config['CROP']),
+        A.Resize(image_size,image_size,p = config['RESIZE']),
+        A.HorizontalFlip(p = config['H_FLIP']),   
+        A.RandomBrightnessContrast(p = config['BRIGHT_CONTRAST']),
         A.HueSaturationValue(
             hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.5
         ),
@@ -96,7 +95,7 @@ train_aug = A.Compose(
 )
 val_aug = A.Compose(
     [ 
-     A.Resize(image_size,image_size,p=1.0),
+     A.Resize(image_size,image_size,p = config['RESIZE']),
         A.Normalize(mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD),
         ToTensorV2()
     ]
@@ -147,9 +146,9 @@ class Pets(Dataset):
 class Model(nn.Module):
     def __init__(self,pretrained):
         super().__init__()
-        self.backbone = timm.create_model('swin_base_patch4_window12_384_in22k', pretrained=True, num_classes=0, drop_rate=0., drop_path_rate=0.,global_pool='')
+        self.backbone = timm.create_model(config['MODEL_NAME'], pretrained=True, num_classes=0, drop_rate=0., drop_path_rate=0.,global_pool='')
         self.pool = nn.AdaptiveAvgPool2d(1)
-        self.fc3_A = nn.Linear(1024,12)
+        self.fc3_A = nn.Linear(config['NUM_NEURONS'],12)
         self.fc3_B = nn.Linear(1024,1)
     
     def forward(self,image):
@@ -209,12 +208,6 @@ def train_one_epoch(train_loader,model,optimizer,criterion,e,epochs,scheduler):
         optimizer.step()
         optimizer.zero_grad()
         
-        '''optimizer.first_step(zero_grad=True)
-        mixup_criterion(criterion, model(image)[1], targets_a, targets_b, lam).backward()
-        #criterion(model(image)[1], labels.unsqueeze(1).float()).backward()
-        nn.BCELoss()(model(image)[0] , feat).backward()
-        optimizer.second_step(zero_grad=True)'''
-
         scheduler.step()
         global_step += 1
         
@@ -240,7 +233,6 @@ def val_one_epoch(loader,model,optimizer,criterion):
             output1 , output2 = model(image)
       
         loss2 = criterion(output2,labels.unsqueeze(1))
-        #loss2 = torch.sqrt(loss2)
         loss =  loss2
         output2 = output2.sigmoid()
         out = output2.cpu().detach().numpy()
@@ -251,7 +243,6 @@ def val_one_epoch(loader,model,optimizer,criterion):
         scores.update(rmse.item(), batch_size)
         loop.set_postfix(loss = loss.item(), rmse  = rmse.item(), stage = 'valid')
         
-  
         
     return losses.avg,scores.avg
 
@@ -262,15 +253,13 @@ def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_
     train_data= Pets(train_data.reset_index(drop=True) , augs = train_aug)
     val_data  = Pets(val_data.reset_index(drop=True) , augs = val_aug)
     
-    train_loader = DataLoader(train_data, shuffle=True, num_workers=4, pin_memory=True, drop_last=True, batch_size=training_batch_size)
-    valid_loader = DataLoader(val_data, shuffle=False, num_workers=4, pin_memory=True, drop_last=False, batch_size=validation_batch_size)
+    train_loader = DataLoader(train_data, shuffle=True, pin_memory=True, drop_last=True, batch_size=training_batch_size, num_workers=4)
+    valid_loader = DataLoader(val_data, shuffle=False, pin_memory=True, drop_last=False, batch_size=validation_batch_size, num_workers=4)
    
     criterion= nn.BCEWithLogitsLoss()
-    optimizer = optim.AdamW(m.parameters(), lr = config['LR'], weight_decay = 1e-6)
-    '''base_optimizer = optim.AdamW # define an optimizer for the "sharpness-aware" update
-    optimizer = SAM(m.parameters(), base_optimizer, lr=5e-4 , weight_decay = 1e-7)'''
+    optimizer = optim.AdamW(m.parameters(), lr = config['LR'], weight_decay = config['WEIGHT_DECAY'])
     
-    #wandb.watch(model, criterion, log="all", log_freq=10)
+    wandb.watch(model, criterion, log="all", log_freq=10)
     
     epochs = config['EPOCHS']
     warmup_epochs = epochs
@@ -285,16 +274,16 @@ def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_
         train_loss, train_rmse = train_one_epoch(train_loader,m,optimizer,criterion,e,epochs,sch)
     
         print(f'For epoch {e+1}/{epochs}')
-        print(f'average train_loss {train_loss}')
-        print(f'average train_rmse {train_rmse}' )
+        print(f'Avg tain loss {train_loss}')
+        print(f'Avg train rmse {train_rmse}' )
         
         val_loss,val_rmse= val_one_epoch(valid_loader,m,optimizer,criterion)
         
-        print(f'avarage val_loss { val_loss }')
-        print(f'avarage val_rmse {val_rmse}')
+        print(f'Avg val loss { val_loss }')
+        print(f'Avg val rmse {val_rmse}')
 
         torch.save(m.state_dict(), config['OUTPUT_DIR'] + f'Fold {fold_n} with val_rmse {val_rmse}.pth') 
-        #wandb.log({"Train RMSE": train_rmse, "Val RMSE": val_rmse, "Train loss": train_loss, "Val Loss": val_loss, "Epoch": e})
+        wandb.log({"Train RMSE": train_rmse, "Val RMSE": val_rmse, "Train loss": train_loss, "Val Loss": val_loss, "Epoch": e})
 
 if __name__ == '__main__':
     
@@ -302,8 +291,8 @@ if __name__ == '__main__':
     if not os.path.exists(config['OUTPUT_DIR']):
         os.makedirs(config['OUTPUT_DIR'])
  
-    #with wandb.init(project="Pawpularity NN", entity='mrigavid'):
-    for i in range(5):
-        model = Model(True)
-        model= model.to(device)
-        fit(model ,i)
+    with wandb.init(project="Pawpularity NN", entity = config['WANDB_ENTITY']):
+        for i in range(config['NUM_FOLDS']):
+            model = Model(True)
+            model= model.to(device)
+            fit(model, i)
