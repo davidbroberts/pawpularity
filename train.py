@@ -139,7 +139,7 @@ class Pets(Dataset):
         transformed = self.augs(image=image)
         image = transformed['image']
         meta = self.df[dense_features].iloc[idx, :].values
-        target = torch.tensor(self.df['Pawpularity'].values[idx],dtype = torch.float32)
+        target = torch.tensor(self.df['Pawpularity'].values[idx],dtype = torch.long)
         
         return image ,torch.FloatTensor(meta), target
 
@@ -149,7 +149,7 @@ class Model(nn.Module):
         self.backbone = timm.create_model(config['MODEL_NAME'], pretrained=True, num_classes=0, drop_rate=0., drop_path_rate=0.,global_pool='')
         self.pool = nn.AdaptiveAvgPool2d(1)
         self.fc3_A = nn.Linear(config['NUM_NEURONS'],12)
-        self.fc3_B = nn.Linear(1024,1)
+        self.fc3_B = nn.Linear(1024,101)
     
     def forward(self,image):
         image = self.backbone(image)
@@ -185,22 +185,25 @@ def train_one_epoch(train_loader,model,optimizer,criterion,e,epochs,scheduler):
     for step,(image,feat ,labels) in loop:
         image = image.to(device)
         feat = feat.to(device)
-        labels= labels.to(device)/100.
+        labels= labels.to(device)
         output1 , output2 = model(image)
         batch_size = labels.size(0)
         
         if torch.rand(1)[0] < 0.5:
-            image, targets_a, targets_b, lam = mixup(image, labels.view(-1, 1))
+            image, targets_a, targets_b, lam = mixup(image, labels)
             loss2 = mixup_criterion(criterion, output2, targets_a, targets_b, lam)
         else:
-            loss2 = criterion(output2,labels.unsqueeze(1))
+            loss2 = criterion(output2,labels)
         
+        #loss1 = nn.BCELoss()(output1,feat)
+        
+        #loss2 = torch.sqrt(loss2)
         loss = loss2
         
-        output2 = output2.sigmoid()
-        out = output2.cpu().detach().numpy()
+        out = output2.softmax(1)
+        outputs = torch.argmax(out, dim=1).cpu().detach().numpy()
         targets = labels.cpu().detach().numpy()
-        rmse = mean_squared_error(targets*100,out*100, squared=False)
+        rmse = mean_squared_error(targets,outputs , squared=False)
         losses.update(loss.item(), batch_size)
         scores.update(rmse.item(), batch_size)
         
@@ -208,6 +211,12 @@ def train_one_epoch(train_loader,model,optimizer,criterion,e,epochs,scheduler):
         optimizer.step()
         optimizer.zero_grad()
         
+        '''optimizer.first_step(zero_grad=True)
+        mixup_criterion(criterion, model(image)[1], targets_a, targets_b, lam).backward()
+        #criterion(model(image)[1], labels.unsqueeze(1).float()).backward()
+        nn.BCELoss()(model(image)[0] , feat).backward()
+        optimizer.second_step(zero_grad=True)'''
+
         scheduler.step()
         global_step += 1
         
@@ -227,22 +236,24 @@ def val_one_epoch(loader,model,optimizer,criterion):
     for step,(image,feat , labels) in loop:
         image = image.to(device)
         feat = feat.to(device)
-        labels = labels.to(device)/100.
+        labels = labels.to(device)
         batch_size = labels.size(0)
         with torch.no_grad():
             output1 , output2 = model(image)
-      
-        loss2 = criterion(output2,labels.unsqueeze(1))
-        loss =  loss2
-        output2 = output2.sigmoid()
-        out = output2.cpu().detach().numpy()
+        loss1 = nn.BCELoss()(output1,feat)
+        loss2 = criterion(output2,labels)
+        #loss2 = torch.sqrt(loss2)
+        loss = loss2
+        out = output2.softmax(1)
+        outputs = torch.argmax(out, dim=1).cpu().detach().numpy()
         targets = labels.cpu().detach().numpy()
-        rmse = mean_squared_error(targets*100, out*100, squared=False)
+        rmse = mean_squared_error(targets,outputs, squared=False)
         
         losses.update(loss.item(), batch_size)
         scores.update(rmse.item(), batch_size)
         loop.set_postfix(loss = loss.item(), rmse  = rmse.item(), stage = 'valid')
         
+  
         
     return losses.avg,scores.avg
 
@@ -256,7 +267,7 @@ def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_
     train_loader = DataLoader(train_data, shuffle=True, pin_memory=True, drop_last=True, batch_size=training_batch_size, num_workers=4)
     valid_loader = DataLoader(val_data, shuffle=False, pin_memory=True, drop_last=False, batch_size=validation_batch_size, num_workers=4)
    
-    criterion= nn.BCEWithLogitsLoss()
+    criterion= nn.CrossEntropyLoss()
     optimizer = optim.AdamW(m.parameters(), lr = config['LR'], weight_decay = config['WEIGHT_DECAY'])
     
     wandb.watch(model, criterion, log="all", log_freq=10)
