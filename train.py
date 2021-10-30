@@ -184,10 +184,10 @@ def val_one_epoch(loader,model,optimizer,criterion):
         labels = labels.to(device)/100.
         batch_size = labels.size(0)
         with torch.no_grad():
-            output1 , output2 = model(image)
+            output1, output2 = model(image)
       
         loss2 = criterion(output2,labels.unsqueeze(1))
-        loss =  loss2
+        loss = loss2
         output2 = output2.sigmoid()
         out = output2.cpu().detach().numpy()
         targets = labels.cpu().detach().numpy()
@@ -202,9 +202,10 @@ def val_one_epoch(loader,model,optimizer,criterion):
 
 def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_batch_size = config['VAL_BATCH_SIZE']):
     
+    
     train_data = df[df.fold != fold_n]
     val_data = df[df.fold == fold_n]
-    train_data= Pets(train_data.reset_index(drop=True) , augs = train_aug)
+    train_data = Pets(train_data.reset_index(drop=True) , augs = train_aug)
     val_data  = Pets(val_data.reset_index(drop=True) , augs = val_aug)
     
     train_loader = DataLoader(train_data, shuffle=True, pin_memory=True, drop_last=True, batch_size=training_batch_size, num_workers=4)
@@ -218,24 +219,35 @@ def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_
   
     num_train_steps = math.ceil(len(train_loader))
     num_warmup_steps = num_train_steps * config['EPOCHS']
-    num_training_steps=int(num_train_steps * config['EPOCHS'])
+    num_training_steps = int(num_train_steps * config['EPOCHS'])
     sch = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps = num_warmup_steps, num_training_steps = num_training_steps) 
     
     loop = range(config['EPOCHS'])
     for e in loop:
         
-        train_loss, train_rmse = train_one_epoch(train_loader,m,optimizer,criterion,e,config['EPOCHS'],sch)
+        train_loss, train_rmse = train_one_epoch(train_loader, m, optimizer, criterion, e, config['EPOCHS'], sch)
     
-        print(f"Epoch {e+1}/{config['EPOCHS']}")
-        print(f"Avg tain loss {train_loss}")
-        print(f"Avg train rmse {train_rmse}" )
+        print(f"Avg tain loss {train_loss} - Avg train rmse {train_rmse}" )
         
-        val_loss,val_rmse= val_one_epoch(valid_loader,m,optimizer,criterion)
+        val_loss,val_rmse= val_one_epoch(valid_loader, m, optimizer, criterion)
         
-        print(f"Avg val loss { val_loss }")
-        print(f"Avg val rmse {val_rmse}")
-
-        torch.save(m.state_dict(), config['OUTPUT_DIR'] + f'Fold {fold_n} with val_rmse {val_rmse}.pth') 
+        model_path =  config['OUTPUT_DIR'] + f'Fold {fold_n} with val_rmse {val_rmse}.pth'
+        
+        if e == 0:
+            best_rmse = val_rmse
+            last_model = model_path
+            
+        print(f"Avg val loss {val_loss} - Avg val rmse {val_rmse}")
+        
+        if val_rmse < best_rmse:
+            if os.path.exists(last_model):
+                os.remove(last_model)
+                
+            last_model = model_path
+            best_rmse = val_rmse
+            print("Saving best model!")
+            torch.save(m.state_dict(), model_path) 
+            
         wandb.log({"Train RMSE": train_rmse, "Val RMSE": val_rmse, "Train loss": train_loss, "Val Loss": val_loss, "Epoch": e})
 
 
