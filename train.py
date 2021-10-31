@@ -227,7 +227,7 @@ def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_
         
         train_loss, train_rmse = train_one_epoch(train_loader, m, optimizer, criterion, e, config['EPOCHS'], sch)
     
-        print(f"Avg tain loss {train_loss} - Avg train rmse {train_rmse}" )
+        print(f"Avg train loss {train_loss} - Avg train rmse {train_rmse}" )
         
         val_loss,val_rmse= val_one_epoch(valid_loader, m, optimizer, criterion)
         
