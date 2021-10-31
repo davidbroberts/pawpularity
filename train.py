@@ -18,12 +18,10 @@ from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import sklearn
 from sklearn import model_selection
-from sklearn import metrics, model_selection, preprocessing
 from sklearn.metrics import mean_squared_error
 from tqdm import tqdm
-import matplotlib.pyplot as plt
+
 import glob
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
@@ -33,7 +31,7 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset,DataLoader
 from torch import optim
 from torchvision import transforms
-from transformers import get_linear_schedule_with_warmup, get_cosine_schedule_with_warmup,get_cosine_with_hard_restarts_schedule_with_warmup
+from transformers import  get_cosine_schedule_with_warmup
 import wandb
 import warnings
 warnings.filterwarnings('ignore')
@@ -139,15 +137,16 @@ def train_one_epoch(train_loader,model,optimizer,criterion,e,epochs,scheduler):
         image = image.to(device)
         feat = feat.to(device)
         labels= labels.to(device)/100.
-        output1 , output2 = model(image)
+        _ , output2 = model(image)
         batch_size = labels.size(0)
         
-        if torch.rand(1)[0] < 0.5:
+        '''if torch.rand(1)[0] < 0.5:
             image, targets_a, targets_b, lam = mixup(image, labels.view(-1, 1))
             loss2 = mixup_criterion(criterion, output2, targets_a, targets_b, lam)
         else:
-            loss2 = criterion(output2,labels.unsqueeze(1))
+            loss2 = criterion(output2,labels.unsqueeze(1))'''
         
+        loss2 = criterion(output2,labels.unsqueeze(1))
         loss = loss2
         
         output2 = output2.sigmoid()
@@ -158,8 +157,12 @@ def train_one_epoch(train_loader,model,optimizer,criterion,e,epochs,scheduler):
         scores.update(rmse.item(), batch_size)
         
         loss.backward(retain_graph = True)
-        optimizer.step()
-        optimizer.zero_grad()
+        '''optimizer.step()
+        optimizer.zero_grad()'''
+
+        optimizer.first_step(zero_grad=True)
+        criterion(model(image)[1], labels.unsqueeze(1).float()).backward()
+        optimizer.second_step(zero_grad=True)
         
         scheduler.step()
         global_step += 1
@@ -199,6 +202,56 @@ def val_one_epoch(loader,model,optimizer,criterion):
         
     return losses.avg,scores.avg
 
+class SAM(torch.optim.Optimizer):
+    def __init__(self, params, base_optimizer, rho=0.05, **kwargs):
+        assert rho >= 0.0, f"Invalid rho, should be non-negative: {rho}"
+
+        defaults = dict(rho=rho, **kwargs)
+        super(SAM, self).__init__(params, defaults)
+
+        self.base_optimizer = base_optimizer(self.param_groups, **kwargs)
+        self.param_groups = self.base_optimizer.param_groups
+
+    @torch.no_grad()
+    def first_step(self, zero_grad=False):
+        grad_norm = self._grad_norm()
+        for group in self.param_groups:
+            scale = group["rho"] / (grad_norm + 1e-12)
+
+            for p in group["params"]:
+                if p.grad is None: continue
+                e_w = p.grad * scale.to(p)
+                p.add_(e_w)  # climb to the local maximum "w + e(w)"
+                self.state[p]["e_w"] = e_w
+
+        if zero_grad: self.zero_grad()
+
+    @torch.no_grad()
+    def second_step(self, zero_grad=False):
+        for group in self.param_groups:
+            for p in group["params"]:
+                if p.grad is None: continue
+                p.sub_(self.state[p]["e_w"])  # get back to "w" from "w + e(w)"
+
+        self.base_optimizer.step()  # do the actual "sharpness-aware" update
+
+        if zero_grad: self.zero_grad()
+
+    def step(self, closure=None):
+        raise NotImplementedError("SAM doesn't work like the other optimizers, you should first call `first_step` and the `second_step`; see the documentation for more info.")
+
+    def _grad_norm(self):
+        shared_device = self.param_groups[0]["params"][0].device  # put everything on the same device, in case of model parallelism
+        norm = torch.norm(
+                    torch.stack([
+                        p.grad.norm(p=2).to(shared_device)
+                        for group in self.param_groups for p in group["params"]
+                        if p.grad is not None
+                    ]),
+                    p=2
+               )
+        return norm
+
 
 def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_batch_size = config['VAL_BATCH_SIZE']):
     
@@ -212,7 +265,9 @@ def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_
     valid_loader = DataLoader(val_data, shuffle=False, pin_memory=True, drop_last=False, batch_size=validation_batch_size, num_workers=4)
    
     criterion= nn.BCEWithLogitsLoss()
-    optimizer = optim.AdamW(m.parameters(), lr = config['LR'], weight_decay = config['WEIGHT_DECAY'])
+    #optimizer = optim.AdamW(m.parameters(), lr = config['LR'], weight_decay = config['WEIGHT_DECAY'])
+    base_optimizer = optim.AdamW # define an optimizer for the "sharpness-aware" update
+    optimizer = SAM(m.parameters(), base_optimizer, lr=config['LR'] , weight_decay =config['WEIGHT_DECAY'])
     
     wandb.watch(model, criterion, log="all", log_freq=10)
     
@@ -258,7 +313,6 @@ if __name__ == '__main__':
     set_seed(42)
     
     df = pd.read_csv(f"{config['DATA_DIR']}train.csv")
-    df = df.sample(frac = 1).reset_index(drop = True)
     y = df.Pawpularity.values
     kf = model_selection.StratifiedKFold(n_splits = 5, random_state=42, shuffle=True)
     
@@ -274,9 +328,9 @@ if __name__ == '__main__':
             A.HorizontalFlip(p = config['H_FLIP']),   
             A.RandomBrightnessContrast(p = config['BRIGHT_CONTRAST']),
             A.HueSaturationValue(
-                hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.5
-            ),
+                hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.5),
             A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=30, p=0.6),
+            A.Cutout(max_h_size=int(config['IMAGE_SIZE'] * 0.125), max_w_size=int(config['IMAGE_SIZE'] * 0.125), num_holes=5, p=0.5),
               
        A.Normalize(mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD),
             ToTensorV2()
