@@ -12,10 +12,12 @@
 "IMAGE_SIZE": 384,
 "MODEL_NAME": "swin_base_patch4_window12_384_in22k",
 "NUM_NEURONS": 1024,
+"EFFNET_VER": "tf_efficientnet_b5_ns",
+"EFFNET_NEURONS":2048,
 "CROP": 0.85,
 "RESIZE": 1.0,
 "H_FLIP": 0.5,
 "V_FLIP": 0.5,
-"BRIGHT_CONTRAST": 0.6,
+"BRIGHT_CONTRAST": 0.5,
 "WANDB_ENTITY": "mrigavid"
 }

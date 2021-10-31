@@ -99,10 +99,15 @@ class Model(nn.Module):
         self.backbone = timm.create_model(config['MODEL_NAME'], pretrained=True, num_classes=0, drop_rate=0., drop_path_rate=0.,global_pool='')
         self.pool = nn.AdaptiveAvgPool2d(1)
         self.fc3_A = nn.Linear(config['NUM_NEURONS'],12)
-        self.fc3_B = nn.Linear(1024,1)
+        self.fc3_B = nn.Linear(config['NUM_NEURONS'],1)
     
     def forward(self,image):
         image = self.backbone(image)
+        
+        if(len(image.shape) == 4):#for efficientnet models
+            image = self.pool(image)
+            image = image.view(image.shape[0], -1)
+
         dec2 = self.fc3_B(image)
         dec1 = self.fc3_A(image)
         return F.sigmoid(dec1) , dec2
@@ -329,7 +334,7 @@ if __name__ == '__main__':
             A.RandomBrightnessContrast(p = config['BRIGHT_CONTRAST']),
             A.HueSaturationValue(
                 hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.5),
-            A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=30, p=0.6),
+            A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=30, p=0.5),
             A.Cutout(max_h_size=int(config['IMAGE_SIZE'] * 0.125), max_w_size=int(config['IMAGE_SIZE'] * 0.125), num_holes=5, p=0.5),
               
        A.Normalize(mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD),
