@@ -1,5 +1,6 @@
 data/train
 data/pytorch-image-models-master
+data/train_cropped
 output
 wandb
 config/SETTINGS.json

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os
 import sys
 import json
@@ -316,8 +315,19 @@ def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_
 if __name__ == '__main__':
     
     set_seed(42)
+
+    print("Training on:", config['PET_CLASS'])
     
-    df = pd.read_csv(f"{config['DATA_DIR']}train.csv")
+    if config['PET_CLASS'] == "cat" or config['PET_CLASS'] == "dog":
+        df_orig = pd.read_csv(f"{config['DATA_DIR']}train_od.csv")
+        df = df_orig[df_orig['pet_class'] == config['PET_CLASS']].reset_index(drop=True)
+        df = df.drop(df.columns[0], axis=1)
+        df = df.drop('pet_class', axis=1)
+    else:
+        df = pd.read_csv(f"{config['DATA_DIR']}train.csv")
+
+    df.to_csv('output/temp.csv')
+
     y = df.Pawpularity.values
     kf = model_selection.StratifiedKFold(n_splits = 5, random_state=42, shuffle=True)
     

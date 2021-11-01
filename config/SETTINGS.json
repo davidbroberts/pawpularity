@@ -1,10 +1,10 @@
 {
-"TIMM_PATH": "C:/Users/mriganka/data/pytorch-image-models-master",
-"TRAIN_IMAGES_PATH": "data/train/",
+"TIMM_PATH": "data/pytorch-image-models-master",
+"TRAIN_IMAGES_PATH": "data/train_cropped/",
 "DATA_DIR": "data/",
 "OUTPUT_DIR": "output/",
 "NUM_FOLDS": 5, 
-"EPOCHS": 20,
+"EPOCHS": 25,
 "LR": 1.25e-5,
 "WEIGHT_DECAY": 1e-5,
 "TRAIN_BATCH_SIZE": 8,
@@ -19,5 +19,6 @@
 "H_FLIP": 0.5,
 "V_FLIP": 0.5,
 "BRIGHT_CONTRAST": 0.5,
+"PET_CLASS": "cat",
 "WANDB_ENTITY": "mrigavid"
 }
