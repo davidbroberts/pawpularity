@@ -290,7 +290,7 @@ def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_
         
         val_loss,val_rmse= val_one_epoch(valid_loader, m, optimizer, criterion)
         
-        model_path =  config['OUTPUT_DIR'] + f'Fold {fold_n} with val_rmse {val_rmse}.pth'
+        model_path =  config['OUTPUT_DIR'] + f"{config['PET_CLASS']} - Fold {fold_n} - val rmse {val_rmse}.pth"
         
         if e == 0:
             best_rmse = val_rmse
@@ -317,7 +317,7 @@ if __name__ == '__main__':
     set_seed(42)
 
     print("Training on:", config['PET_CLASS'])
-    
+    print("Starting on Fold", config['START_FOLD'])
     if config['PET_CLASS'] == "cat" or config['PET_CLASS'] == "dog":
         df_orig = pd.read_csv(f"{config['DATA_DIR']}train_od.csv")
         df = df_orig[df_orig['pet_class'] == config['PET_CLASS']].reset_index(drop=True)
@@ -326,7 +326,6 @@ if __name__ == '__main__':
     else:
         df = pd.read_csv(f"{config['DATA_DIR']}train.csv")
 
-    df.to_csv('output/temp.csv')
 
     y = df.Pawpularity.values
     kf = model_selection.StratifiedKFold(n_splits = 5, random_state=42, shuffle=True)
@@ -361,7 +360,7 @@ if __name__ == '__main__':
 
  
     with wandb.init(project="Pawpularity NN", entity = config['WANDB_ENTITY']):
-        for i in range(config['NUM_FOLDS']):
+        for i in range(config['START_FOLD'], config['NUM_FOLDS']):
             model = Model(True)
             model= model.to(device)
             fit(model, i)
