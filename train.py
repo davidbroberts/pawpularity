@@ -339,7 +339,9 @@ if __name__ == '__main__':
     train_aug = A.Compose(
         [   A.RandomResizedCrop(config['IMAGE_SIZE'],config['IMAGE_SIZE'],p = config['CROP']),
             A.Resize(config['IMAGE_SIZE'],config['IMAGE_SIZE'],p = config['RESIZE']),
-            A.HorizontalFlip(p = config['H_FLIP']),   
+            A.HorizontalFlip(p = config['H_FLIP']),  
+             A.VerticalFlip(p=0.5),   
+            A.Transpose(p=0.5), 
             A.RandomBrightnessContrast(p = config['BRIGHT_CONTRAST']),
             A.HueSaturationValue(
                 hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.5),
