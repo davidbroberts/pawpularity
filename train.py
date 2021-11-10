@@ -337,7 +337,7 @@ if __name__ == '__main__':
 
     
     train_aug = A.Compose(
-        [   A.RandomResizedCrop(config['IMAGE_SIZE'],config['IMAGE_SIZE'],p = config['CROP']),
+        [A.RandomResizedCrop(config['IMAGE_SIZE'],config['IMAGE_SIZE'],p = config['CROP']),
             A.Resize(config['IMAGE_SIZE'],config['IMAGE_SIZE'],p = config['RESIZE']),
             A.HorizontalFlip(p = config['H_FLIP']),  
              A.VerticalFlip(p=0.5),   
