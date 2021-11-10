@@ -328,7 +328,7 @@ if __name__ == '__main__':
 
 
     y = df.Pawpularity.values
-    kf = model_selection.StratifiedKFold(n_splits = 5, random_state=42, shuffle=True)
+    kf = model_selection.StratifiedKFold(n_splits = config['NUM_FOLDS'], random_state=42, shuffle=True)
     
     for f,(t,v) in enumerate(kf.split(X=df,y=y)):
         df.loc[v,'fold'] = f
