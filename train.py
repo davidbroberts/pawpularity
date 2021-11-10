@@ -290,7 +290,7 @@ def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_
         
         val_loss,val_rmse= val_one_epoch(valid_loader, m, optimizer, criterion)
         
-        model_path =  config['OUTPUT_DIR'] + f"{config['MODEL_NAME']} - {config['PET_CLASS']} - Fold {fold_n} - val rmse {round(val_rmse,4)}.pth"
+        model_path =  config['OUTPUT_DIR'] + f"{config['MODEL_NAME']} - {config['PET_CLASS']} - Fold {fold_n} - val rmse {format(val_rmse,'.4f')}.pth"
         
         if e == 0:
             best_rmse = val_rmse
