@@ -365,6 +365,8 @@ if __name__ == '__main__':
             df.drop(df[df.Id == i].index.values[0],axis=0,inplace=True)
         except IndexError:
             pass
+    
+    df = df.reset_index(drop=True)
 
 
     y = df.Pawpularity.values
