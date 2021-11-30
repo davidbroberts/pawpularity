@@ -1,5 +1,5 @@
 {
-"TIMM_PATH": "data/pytorch-image-models-master/",
+"TIMM_PATH": "data/pytorch-image-models-master",
 "TRAIN_IMAGES_PATH": "data/train/",
 "DATA_DIR": "data/",
 "OUTPUT_DIR": "output/",
@@ -13,13 +13,13 @@
 "IMAGE_SIZE": 380,
 "MODEL_NAME": "tf_efficientnet_b4_ns",
 "NUM_NEURONS": 1792,
-"EFFNET_VER": "tf_efficientnet_b5_ns",
-"EFFNET_NEURONS":2048,
+"EFFNET_VER": "tf_efficientnet_b4_ns",
+"EFFNET_NEURONS":1792,
 "CROP": 0.85,
 "RESIZE": 1.0,
 "H_FLIP": 0.5,
 "V_FLIP": 0.5,
 "BRIGHT_CONTRAST": 0.5,
-"PET_CLASS": "all",
+"PET_CLASS": "cat",
 "WANDB_ENTITY": "mrigavid"
 }

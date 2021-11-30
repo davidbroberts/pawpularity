@@ -320,7 +320,7 @@ if __name__ == '__main__':
     print("Training on:", config['PET_CLASS'])
     print("Starting on Fold", config['START_FOLD'])
     if config['PET_CLASS'] == "cat" or config['PET_CLASS'] == "dog":
-        df_orig = pd.read_csv(f"{config['DATA_DIR']}train_od.csv")
+        df_orig = pd.read_csv(f"{config['DATA_DIR']}train_od_v5x6.csv")
         df = df_orig[df_orig['pet_class'] == config['PET_CLASS']].reset_index(drop=True)
         df = df.drop(df.columns[0], axis=1)
         df = df.drop('pet_class', axis=1)
@@ -367,41 +367,22 @@ if __name__ == '__main__':
             pass
     
     df = df.reset_index(drop=True)
-    df['path'] = [f"{config['TRAIN_IMAGES_PATH']}{x}.jpg" for x in df["Id"].values]
-
-    def create_folds(data, num_splits):
-        data["kfold"] = -1
-        num_bins = int(np.floor(1 + np.log2(len(data))))
-
-        data.loc[:, "bins"] = pd.cut(data["Pawpularity"], bins=num_bins, labels=False)
-
-        kf = model_selection.StratifiedKFold(n_splits=num_splits, shuffle=True, random_state=42)
-
-        for f, (t_, v_) in enumerate(kf.split(X=data, y=data.bins.values)):
-            data.loc[v_, 'fold'] = f
-
-        data = data.drop("bins", axis=1)
-
-        return data
-    
-    df = create_folds(df, num_splits=config['NUM_FOLDS'])
 
 
-    '''y = df.Pawpularity.values
+    y = df.Pawpularity.values
     kf = model_selection.StratifiedKFold(n_splits = config['NUM_FOLDS'], random_state=42, shuffle=True)
     
     for f,(t,v) in enumerate(kf.split(X=df,y=y)):
-        df.loc[v,'fold'] = f'''
-    
+        df.loc[v,'fold'] = f
 
-    
+    df['path'] = [f"{config['TRAIN_IMAGES_PATH']}{x}.jpg" for x in df["Id"].values]
 
     
     train_aug = A.Compose(
-        [A.RandomResizedCrop(config['IMAGE_SIZE'],config['IMAGE_SIZE'],p = 0.2),
+        [A.RandomResizedCrop(config['IMAGE_SIZE'],config['IMAGE_SIZE'],p = config['CROP']),
             A.Resize(config['IMAGE_SIZE'],config['IMAGE_SIZE'],p = config['RESIZE']),
             A.HorizontalFlip(p = config['H_FLIP']),  
-             A.VerticalFlip(p=0.5),   
+             A.VerticalFlip(p=0.3),   
             A.Transpose(p=0.3), 
             A.RandomBrightnessContrast(p = config['BRIGHT_CONTRAST']),
             A.HueSaturationValue(
