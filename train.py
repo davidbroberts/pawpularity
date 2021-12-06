@@ -38,8 +38,10 @@ warnings.filterwarnings('ignore')
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 device
 
+
 if not os.path.exists(config['OUTPUT_DIR']):
     os.makedirs(config['OUTPUT_DIR'])
+
 
 dense_features = [
     'Subject Focus', 'Eyes', 'Face', 'Near', 'Action', 'Accessory',
@@ -93,7 +95,7 @@ class Pets(Dataset):
         return image, torch.FloatTensor(meta), target
     
 class Pawpu(Sampler):
-    def __init__(self ,dataset , pct = 0.2):
+    def __init__(self ,dataset , pct = 0.1):
         self.df = dataset.df.Pawpularity
         self.pct = pct
     def __len__(self):
@@ -327,12 +329,10 @@ def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_
         wandb.log({"Train RMSE": train_rmse, "Val RMSE": val_rmse, "Train loss": train_loss, "Val Loss": val_loss, "Epoch": e})
 
 
-
-
 if __name__ == '__main__':
     
     set_seed(42)
-
+    
 
     print("Training on:", config['PET_CLASS'])
     print("Starting on Fold", config['START_FOLD'])
