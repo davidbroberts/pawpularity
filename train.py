@@ -94,7 +94,7 @@ class Pets(Dataset):
         
         return image, torch.FloatTensor(meta), target
     
-class Pawpu(Sampler):
+'''class Pawpu(Sampler):
     def __init__(self ,dataset , pct = 0.1):
         self.df = dataset.df.Pawpularity
         self.pct = pct
@@ -108,13 +108,13 @@ class Pawpu(Sampler):
         idxs = np.hstack([greater ,rest ])
         np.random.shuffle(idxs)
         idxs = idxs[:len(self.df)]
-        return iter(idxs)
+        return iter(idxs)'''
 
 
 class Model(nn.Module):
     def __init__(self,pretrained):
         super().__init__()
-        self.backbone = timm.create_model(config['MODEL_NAME'], pretrained=True, num_classes=0, drop_rate=0.0, drop_path_rate=0.0,global_pool='')
+        self.backbone = timm.create_model(config['MODEL_NAME'], pretrained=True, num_classes=0, drop_rate=0.125, drop_path_rate=0.125,global_pool='')
         self.pool = nn.AdaptiveAvgPool2d(1)
         self.fc3_A = nn.Linear(config['NUM_NEURONS'],12)
         self.fc3_B = nn.Linear(config['NUM_NEURONS'],1)
@@ -283,8 +283,8 @@ def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_
     val_data = df[df.fold == fold_n]
     train_data = Pets(train_data.reset_index(drop=True) , augs = train_aug)
     val_data  = Pets(val_data.reset_index(drop=True) , augs = val_aug)
-    our_sampler = Pawpu(train_data)
-    train_loader = DataLoader(train_data, sampler=our_sampler, pin_memory=True, drop_last=True, batch_size=training_batch_size, num_workers=4)
+    #our_sampler = Pawpu(train_data)
+    train_loader = DataLoader(train_data, shuffle=True, pin_memory=True, drop_last=True, batch_size=training_batch_size, num_workers=4)
     valid_loader = DataLoader(val_data, shuffle=False, pin_memory=True, drop_last=False, batch_size=validation_batch_size, num_workers=4)
    
     criterion= nn.BCEWithLogitsLoss()
@@ -400,7 +400,7 @@ if __name__ == '__main__':
             A.Resize(config['IMAGE_SIZE'],config['IMAGE_SIZE'],p = config['RESIZE']),
             A.HorizontalFlip(p = config['H_FLIP']),  
              A.VerticalFlip(p=0.5),   
-            A.Transpose(p=0.3), 
+            A.Transpose(p=0.5), 
             A.RandomBrightnessContrast(p = config['BRIGHT_CONTRAST']),
             A.HueSaturationValue(
                 hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.5),
