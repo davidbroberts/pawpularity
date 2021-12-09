@@ -8,6 +8,9 @@ import cv2
 with open('config/SETTINGS.json', 'r') as f:
     config = json.load(f)
     print("CONFIG LOADED ..")
+    print("Model: " + config['MODEL_NAME'])
+    print("Images: " + config['TRAIN_IMAGES_PATH'])
+    print("Batch Size: " + str(config['TRAIN_BATCH_SIZE']) + "/" + str(config['VAL_BATCH_SIZE']))
 
 
 timm_path = config['TIMM_PATH']
@@ -49,11 +52,11 @@ dense_features = [
 ]
 
 def get_num_neurons():
-    print("GETTING NUM NEURONS")
+
     m = timm.create_model(config['MODEL_NAME'], pretrained=True, num_classes=0)
     o = m(torch.randn(2, 3, config['IMAGE_SIZE'], config['IMAGE_SIZE']))
     print(f'Unpooled shape: {o.shape}')
-    print("GETTING NUM NEURONS .. ", o.shape[1])
+    print("GETTING NUM NEURONS -> ", o.shape[1])
     return o.shape[1]
 
 def set_seed(seed):
@@ -338,7 +341,7 @@ def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_
 
 
 if __name__ == '__main__':
-    
+
     set_seed(42)
     
 
