@@ -125,7 +125,7 @@ class Pets(Dataset):
 class Model(nn.Module):
     def __init__(self,pretrained):
         super().__init__()
-        self.backbone = timm.create_model(config['MODEL_NAME'], pretrained=True, num_classes=0, drop_rate=0.125, drop_path_rate=0.125)
+        self.backbone = timm.create_model(config['MODEL_NAME'], pretrained=True, num_classes=0, drop_rate=0.0, drop_path_rate=0.1)
         self.pool = nn.AdaptiveAvgPool2d(1)
         self.fc3_A = nn.Linear(config['NUM_NEURONS'],12)
         self.fc3_B = nn.Linear(config['NUM_NEURONS'],1)
