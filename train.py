@@ -125,18 +125,21 @@ class Pets(Dataset):
 class Model(nn.Module):
     def __init__(self,pretrained):
         super().__init__()
-        self.backbone = timm.create_model(config['MODEL_NAME'], pretrained=True, num_classes=0, drop_rate=0.0, drop_path_rate=0.1)
+        self.backbone = timm.create_model(config['MODEL_NAME'], pretrained=True, num_classes=0, drop_rate=0.0, drop_path_rate=0.0)
         self.pool = nn.AdaptiveAvgPool2d(1)
         self.fc3_A = nn.Linear(config['NUM_NEURONS'],12)
         self.fc3_B = nn.Linear(config['NUM_NEURONS'],1)
+        self.do = nn.Dropout(p=0.35)
     
     def forward(self,image):
         image = self.backbone(image)
+        
         
         if(len(image.shape) == 4):#for efficientnet models
             image = self.pool(image)
             image = image.view(image.shape[0], -1)
 
+        image = self.do(image)
         dec2 = self.fc3_B(image)
         dec1 = self.fc3_A(image)
         return F.sigmoid(dec1) , dec2
@@ -303,7 +306,7 @@ def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_
     base_optimizer = optim.AdamW # define an optimizer for the "sharpness-aware" update
     optimizer = SAM(m.parameters(), base_optimizer, lr=config['LR'] , weight_decay =config['WEIGHT_DECAY'])
     
-    wandb.watch(model, criterion, log="all", log_freq=10)
+    wandb.watch(m, criterion, log="all", log_freq=10)
     
   
     num_train_steps = math.ceil(len(train_loader))
@@ -377,7 +380,7 @@ if __name__ == '__main__':
         [A.RandomResizedCrop(config['IMAGE_SIZE'],config['IMAGE_SIZE'],p = config['CROP']),
             A.Resize(config['IMAGE_SIZE'],config['IMAGE_SIZE'],p = config['RESIZE']),
             A.HorizontalFlip(p = config['H_FLIP']),  
-             A.VerticalFlip(p=0.3),    
+             A.VerticalFlip(p=0.5),    
             A.RandomBrightnessContrast(p = config['BRIGHT_CONTRAST']),
             A.HueSaturationValue(
                 hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.5),
