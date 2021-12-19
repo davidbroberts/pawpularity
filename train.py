@@ -95,10 +95,11 @@ class Pets(Dataset):
 class Model(nn.Module):
     def __init__(self,pretrained):
         super().__init__()
-        self.backbone = timm.create_model(config['MODEL_NAME'], pretrained=True, num_classes=0, drop_rate=0.1, drop_path_rate=0.1,global_pool='')
+        self.backbone = timm.create_model(config['MODEL_NAME'], pretrained=True, num_classes=0, drop_rate=0.0, drop_path_rate=0.0,global_pool='')
         self.pool = nn.AdaptiveAvgPool2d(1)
         self.fc3_A = nn.Linear(config['NUM_NEURONS'],12)
         self.fc3_B = nn.Linear(config['NUM_NEURONS'],1)
+        self.do = nn.Dropout(p=0.3)
     
     def forward(self,image):
         image = self.backbone(image)
@@ -107,6 +108,7 @@ class Model(nn.Module):
             image = self.pool(image)
             image = image.view(image.shape[0], -1)
 
+        image = self.do(image)
         dec2 = self.fc3_B(image)
         dec1 = self.fc3_A(image)
         return F.sigmoid(dec1) , dec2
