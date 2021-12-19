@@ -93,7 +93,7 @@ class Model(nn.Module):
         self.pool = nn.AdaptiveAvgPool2d(1)
         self.fc3_A = nn.Linear(config['NUM_NEURONS'],12)
         self.fc3_B = nn.Linear(config['NUM_NEURONS'],1)
-        self.do = nn.Dropout(p=0.3)
+        self.do = nn.Dropout(p=0.5)
     
     
     def forward(self,image):
@@ -292,7 +292,7 @@ def fit(m, fn, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_batc
         
         val_loss,val_rmse= val_one_epoch(valid_loader, m, optimizer, criterion)
         
-        model_path =  config['OUTPUT_DIR'] + f"{config['MODEL_NAME']} - {config['PET_CLASS']} - Fold {fold_n} - val rmse {format(val_rmse,'.4f')}.pth"
+        model_path =  config['OUTPUT_DIR'] + f"{config['MODEL_NAME']} - {config['PET_CLASS']} - Fold {fn} - val rmse {format(val_rmse,'.4f')}.pth"
         
         if e == 0:
             best_rmse = val_rmse
@@ -336,7 +336,7 @@ if __name__ == '__main__':
             A.Resize(config['IMAGE_SIZE'],config['IMAGE_SIZE'],p = config['RESIZE']),
             A.HorizontalFlip(p = config['H_FLIP']),  
              A.VerticalFlip(p=0.5),   
-            A.Transpose(p=0.1), 
+            A.Transpose(p=0.5), 
             A.RandomBrightnessContrast(p = config['BRIGHT_CONTRAST']),
             A.HueSaturationValue(
                 hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.5),
