@@ -334,11 +334,11 @@ if __name__ == '__main__':
     kf = model_selection.StratifiedKFold(n_splits = config['NUM_FOLDS'], random_state=42, shuffle=True)
     
     for f,(t,v) in enumerate(kf.split(X=df,y=y)):
-        df.loc[v,'fold'] = f
+        df.loc[v,'fold'] = f'''
     
     num_bins = int(np.ceil(2*((len(df))**(1./3))))
     df['bins'] = pd.cut(df['Pawpularity'], bins=num_bins, labels=False)
-    df['fold'] = -1'''
+    df['fold'] = -1
 
     
     strat_kfold = model_selection.StratifiedKFold(n_splits=config['NUM_FOLDS'], random_state=42, shuffle=True)
