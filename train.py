@@ -95,7 +95,7 @@ class Pets(Dataset):
 class Model(nn.Module):
     def __init__(self,pretrained):
         super().__init__()
-        self.backbone = timm.create_model(config['MODEL_NAME'], pretrained=True, num_classes=0, drop_rate=0.0, drop_path_rate=0.0,global_pool='')
+        self.backbone = timm.create_model(config['MODEL_NAME'], pretrained=True, num_classes=0, drop_rate=0.0,global_pool='')
         self.pool = nn.AdaptiveAvgPool2d(1)
         self.fc3_A = nn.Linear(config['NUM_NEURONS'],12)
         self.fc3_B = nn.Linear(config['NUM_NEURONS'],1)
@@ -312,7 +312,14 @@ def fit(m, fold_n, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_
         wandb.log({"Train RMSE": train_rmse, "Val RMSE": val_rmse, "Train loss": train_loss, "Val Loss": val_loss, "Epoch": e})
 
 
+def get_num_neurons():
+    m = timm.create_model(config['MODEL_NAME'], pretrained=True, num_classes=0)
+    o = m(torch.randn(2, 3, 224, 224))
+    print(f'Unpooled shape: {o.shape}')
+    return o.shape[1]
 
+if config['NUM_NEURONS'] == 0:
+    config['NUM_NEURONS'] = get_num_neurons()
 
 if __name__ == '__main__':
     
@@ -321,13 +328,13 @@ if __name__ == '__main__':
 
     print("Training on:", config['PET_CLASS'])
     print("Starting on Fold", config['START_FOLD'])
-    if config['PET_CLASS'] == "cat" or config['PET_CLASS'] == "dog":
-        df_orig = pd.read_csv(f"{config['DATA_DIR']}train_od_v5x6.csv")
-        df = df_orig[df_orig['pet_class'] == config['PET_CLASS']].reset_index(drop=True)
-        df = df.drop(df.columns[0], axis=1)
-        df = df.drop('pet_class', axis=1)
-    else:
-        df = pd.read_csv(f"{config['DATA_DIR']}train.csv")
+    #if config['PET_CLASS'] == "cat" or config['PET_CLASS'] == "dog":
+    #    df_orig = pd.read_csv(f"{config['DATA_DIR']}train_od_v5x6.csv")
+    #     df = df_orig[df_orig['pet_class'] == config['PET_CLASS']].reset_index(drop=True)
+    #    df = df.drop(df.columns[0], axis=1)
+    #    df = df.drop('pet_class', axis=1)
+    #else:
+    df = pd.read_csv(f"{config['DATA_DIR']}train_updated.csv")
 
 
     '''y = df.Pawpularity.values
