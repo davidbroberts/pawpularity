@@ -93,7 +93,7 @@ class Model(nn.Module):
         self.pool = nn.AdaptiveAvgPool2d(1)
         self.fc3_A = nn.Linear(config['NUM_NEURONS'],12)
         self.fc3_B = nn.Linear(config['NUM_NEURONS'],1)
-        self.do = nn.Dropout(p=0.5)
+        self.do = nn.Dropout(p=0.3)
     
     
     def forward(self,image):
@@ -259,7 +259,6 @@ def fit(m, fn, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_batc
     train_data = train_data[["path" , "Pawpularity"]]
     plx = pl[["path" ,f'pf{fn}']]
     plx['Pawpularity'] = plx[f'pf{fn}']
-    plx = plx[(plx.Pawpularity < 30) | (plx.Pawpularity> 60)]
     train_data = pd.concat([train_data , plx])
 
     val_data = df[df.fold == fn]
@@ -319,15 +318,26 @@ if __name__ == '__main__':
     set_seed(42)
 
     df = pd.read_csv(f"{config['DATA_DIR']}train.csv")
-    y = df.Pawpularity.values
+    '''y = df.Pawpularity.values
     kf = model_selection.StratifiedKFold(n_splits = config['NUM_FOLDS'], random_state=42, shuffle=True)
     
     for f,(t,v) in enumerate(kf.split(X=df,y=y)):
-        df.loc[v,'fold'] = f
+        df.loc[v,'fold'] = f'''
+    
+    num_bins = int(np.ceil(2*((len(df))**(1./3))))
+    df['bins'] = pd.cut(df['Pawpularity'], bins=num_bins, labels=False)
+    df['fold'] = -1
+
+
+    strat_kfold = model_selection.StratifiedKFold(n_splits=10, random_state=42, shuffle=True)
+    for i, (_, train_index) in enumerate(strat_kfold.split(df.index, df['bins'])):
+        df.iloc[train_index, -1] = i
+
+    df['fold'] = df['fold'].astype('int')
 
     df['path'] = [f"{config['TRAIN_IMAGES_PATH']}{x}.jpg" for x in df["Id"].values]
 
-    pl = pd.read_csv(f"{config['DATA_DIR']}p_labelling.csv")
+    pl = pd.read_csv(f"{config['DATA_DIR']}p_labelling_v2.csv")
     pl['path'] = [f"{config['TRAIN_IMAGES_PATH_PL']}{x}-1.jpg" for x in pl["PetID"].values]
 
 
@@ -336,7 +346,7 @@ if __name__ == '__main__':
             A.Resize(config['IMAGE_SIZE'],config['IMAGE_SIZE'],p = config['RESIZE']),
             A.HorizontalFlip(p = config['H_FLIP']),  
              A.VerticalFlip(p=0.5),   
-            A.Transpose(p=0.5), 
+            
             A.RandomBrightnessContrast(p = 0.75),
             A.HueSaturationValue(
                 hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.5),
