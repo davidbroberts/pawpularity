@@ -278,7 +278,7 @@ def fit(m, fn, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_batc
     
   
     num_train_steps = math.ceil(len(train_loader))
-    num_warmup_steps = num_train_steps * (config['EPOCHS']//2 -2)
+    num_warmup_steps = num_train_steps * (config['EPOCHS']//2 + 1)
     num_training_steps = int(num_train_steps * config['EPOCHS'])
     sch = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps = num_warmup_steps, num_training_steps = num_training_steps) 
     
