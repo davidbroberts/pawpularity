@@ -345,13 +345,12 @@ if __name__ == '__main__':
         [   A.RandomResizedCrop(config['IMAGE_SIZE'],config['IMAGE_SIZE'],p = config['CROP']),
             A.Resize(config['IMAGE_SIZE'],config['IMAGE_SIZE'],p = config['RESIZE']),
             A.HorizontalFlip(p = config['H_FLIP']),  
-             A.VerticalFlip(p=0.5),   
-            
-            A.RandomBrightnessContrast(p = 0.75),
+             A.VerticalFlip(p= config['V_FLIP']),   
+            A.RandomBrightnessContrast(p = config['BRIGHT_CONTRAST']),
             A.HueSaturationValue(
-                hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.5),
-            A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=30, p=0.5),
-            A.Cutout(max_h_size=int(config['IMAGE_SIZE'] * 0.21), max_w_size=int(config['IMAGE_SIZE'] * 0.21), num_holes=4, p=0.5),
+                hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=config['HUE']),
+            A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.1, rotate_limit=30, p=config['SCALE']),
+            A.Cutout(max_h_size=int(config['IMAGE_SIZE'] * 0.21), max_w_size=int(config['IMAGE_SIZE'] * 0.21), num_holes=4, p=config['CUTOUT']),
               
        A.Normalize(mean=IMAGENET_DEFAULT_MEAN, std=IMAGENET_DEFAULT_STD),
             ToTensorV2()
