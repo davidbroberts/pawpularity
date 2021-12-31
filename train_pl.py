@@ -259,6 +259,7 @@ def fit(m, fn, training_batch_size = config['TRAIN_BATCH_SIZE'], validation_batc
     train_data = train_data[["path" , "Pawpularity"]]
     plx = pl[["path" ,f'pf{fn}']]
     plx['Pawpularity'] = plx[f'pf{fn}']
+    plx = plx[(plx.Pawpularity < 35) | (plx.Pawpularity> 60)]
     train_data = pd.concat([train_data , plx])
 
     val_data = df[df.fold == fn]
