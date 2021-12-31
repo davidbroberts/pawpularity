@@ -15,14 +15,14 @@
 "IMAGE_SIZE": 224,
 "MODEL_NAME": "swin_base_patch4_window7_224_in22k",
 "NUM_NEURONS": 1024,
-"CROP": 0.5,
+"CROP": 0.7,
 "RESIZE": 1.0,
 "H_FLIP": 0.5,
 "V_FLIP": 0.5,
 "BRIGHT_CONTRAST": 0.5,
 "HUE":0.5,
-"SCALE":0.0,
-"CUTOUT":0.0,
+"SCALE":0.5,
+"CUTOUT":0.5,
 "PET_CLASS": "all",
 "WANDB_ENTITY": "mrigavid"
 }
